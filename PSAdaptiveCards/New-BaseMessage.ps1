@@ -1,92 +1,116 @@
-#RichTextBlock
-using module ./Base.psm1
+Function New-BaseMessage
+{
+	<#
+	.SYNOPSIS
+		Build basic Adaptive Card.
+	.DESCRIPTION
+		This is example how to build basic Adaptive Cards.
+	.EXAMPLE
+		$ImageUrl = "https://imgweb.z6.web.core.windows.net/logo.png"
+		$Title = "Title"
+		$Subject = "Subject"
+		$Message = "Test Message"
+		$TableItems = @([PSCustomObject]@{Name="Test1";Value=1},[PSCustomObject]@{Name="Test2";Value=2},[PSCustomObject]@{Name="Test3";Value=3})
+		$Facts = [Ordered]@{}
+		$TableItems[0].PSObject.Properties | ForEach-Object { $Facts[$_.Name] = $_.Value }
 
-#Classes
-class TextRun {
-	[String] $type = "TextRun"
-	[String] $text
-	[nullable[Colors]] $color
-	[nullable[FontType]] $fontType
-	[nullable[Bool]] $highlight
-	[nullable[Bool]] $isSubtle
-	[nullable[Bool]] $italic
-	[nullable[FontSize]] $size
-	[nullable[Bool]] $strikethrough
-	[nullable[Bool]] $underline
-	[nullable[FontWeight]] $weight
-
-	TextRun() {}
-	TextRun([String]$Text)
-	{
-		$this.text = $Text
-	}
-	TextRun([Hashtable]$Properties)
-	{
-		foreach ($Property in $Properties.Keys) {
-			$this.$Property = $Properties.$Property
+		$MessageParams = @{
+			ImageUrl = $ImageUrl
+			Title = $Title
+			Subject = $Subject
+			Message = $Message
+			TableItems = $TableItems
+			Facts = $Facts
 		}
-	}
-}
-class RichTextBlock : Base {
-	[String] $type = "RichTextBlock"
-	[Object[]] $inlines = @()
-	[nullable[HorizontalAlignment]] $horizontalCellContentAlignment
-
-	RichTextBlock() {}
-	RichTextBlock([String]$Text)
-	{
-		$this.inlines = [TextRun]::new($Text)
-	}
-	RichTextBlock($Inlines)
-	{
-		$this.inlines = $Inlines
-	}
-}
-
-#Functions
-Function New-RichTextBlock
-{
+		$AdaptiveCard = New-BaseMessage @MessageParams
+		$AdaptiveCard | Remove-NullProperties | ConvertTo-Json -EnumsAsStrings -Depth 15
+	#>
 	[CmdletBinding()]
 	param (
-		[String]$Text,
-		$Inlines
+		[Parameter()]
+		[String]$ImageUrl,
+		[String]$Title,
+		[String]$Subject,
+		[String]$Message,
+		$TableItems,
+		$Facts
 	)
 
-	if($Text) {
-		$RichTextBlock = [RichTextBlock]::new($Text)
-	} elseif($Inlines) {
-		$RichTextBlock = [RichTextBlock]::new($Inlines)
-	} else {
-		$RichTextBlock = [RichTextBlock]::new()
+	#Build AdaptiveCard
+	$AdaptiveCard = New-AdaptiveCard
+
+	$ColumnSet = New-ColumnSet
+	#Add Logo if exist
+	if($ImageUrl)
+	{
+		$Column = New-Column
+		$Column.items = New-Image -ImageUrl $ImageUrl
+		$ColumnSet.columns += $Column
 	}
 
-	Return $RichTextBlock
-}
-
-Function New-TextRun
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		[Hashtable]$Properties
-	)
-
-	if($Text) {
-		$TextRun = [TextRun]::new($Text)
-	} elseif($Properties) {
-		$TextRun = [TextRun]::new($Properties)
-	} else {
-		$TextRun = [TextRun]::new()
+	#Add Title
+	if($Title -or $Subject)
+	{
+		$Column = New-Column
+		$Column.width = "stretch"
+		if($Title) { $Column.items += New-TextBlock -Properties @{text="$Title";weight="Bolder"} }
+		if($Subject) { $Column.items += New-TextBlock -Properties @{text="$Subject";spacing="None"} }
+		$ColumnSet.columns += $Column
+		$AdaptiveCard.body += $ColumnSet
 	}
 
-	Return $TextRun
+	#Add Message if exist
+	if($Message)
+	{
+		$AdaptiveCard.body += New-TextBlock -Text $Message
+	}
+
+	#Add Facts if exist
+	if($Facts)
+	{
+		$AdaptiveCard.body += New-FactSet -Facts $Facts
+	}
+
+	#Add Table if exist
+	if($TableItems)
+	{
+		#Params
+		$Names = $TableItems[0].PSObject.Properties | Select-Object -ExpandProperty Name
+		$Columns = $Names.Count
+
+		$Table = New-Table -Columns $Columns
+		$Table.firstRowAsHeader = $true
+		$TableRow = New-TableRow
+		Foreach($Name in $Names)
+		{
+			$TableCell = New-TableCell
+			$TableCell.items = New-TextBlock -Text $Name
+			$TableRow.cells += $TableCell
+		}
+		$Table.rows += $TableRow
+
+		Foreach($Item in $Items)
+		{
+			$TableRow = New-TableRow
+			Foreach($Name in $Names)
+			{
+				$TableCell = New-TableCell
+				$TableCell.items = New-TextBlock -Text $($Item.$Name)
+				$TableRow.cells += $TableCell
+			}
+			$Table.rows += $TableRow
+		}
+		$AdaptiveCard.body += $Table
+	}
+
+	Return $AdaptiveCard
 }
 
 # SIG # Begin signature block
 # MIIuNgYJKoZIhvcNAQcCoIIuJzCCLiMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAV8yF2q1fYjcCH
-# ScbA61Qhuf+Sn1I0FWgFK/Oav+9ie6CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBz0Ks2YRrKVHNV
+# Z9Jwey8Y7Nc/EvQ68kauMK/lZZjZm6CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
 # AEkoya49fu0nMA0GCSqGSIb3DQEBDAUAMH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQK
 # ExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2Vy
 # dGlmaWNhdGlvbiBBdXRob3JpdHkxIjAgBgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5l
@@ -296,38 +320,38 @@ Function New-TextRun
 # dW0gQ29kZSBTaWduaW5nIDIwMjEgQ0ECED8vBp9ca4iemmXFUwZ0lhUwDQYJYIZI
 # AWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0B
 # CQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAv
-# BgkqhkiG9w0BCQQxIgQg6z8pWwL0gZwQKpXMHcmtryBoEitrG4Y2DJQ2GKIFEbcw
-# DQYJKoZIhvcNAQEBBQAEggIAFwpNbrN+98G3H79f1th9wdsTJakGhqEExdvuYTxz
-# JT8vee+8yrvurzYw3qr0RKaONi8khFTs7z+gcyOpvf/RhGzHM6jyvigPwhcmkM2J
-# M6RDYFusb9MrCVI6bfRZtpAzcbKf/RozFDBHksCHr4hiFwmK/XeIN45ezqspVQRM
-# X2TUj/pQgXfa+mn/CGX9eXTvtCePzxMuwJX0YCy1Ow1Ugo7lWOJMzjhIIEWNFRtC
-# DhTUMaezb0VuJJI/Lu2++d0sFLDmfeKB8WbMccSE9mOlEeQ67fzYK96LPLlO494Y
-# 46YPIMeR3DLTaXWcZkcImMg4rTMGMPK/P5SkBAu7dN/55zoDRh5K+b4+dxcIcsDl
-# nyfIghfoFSOzVQ0kVa5N/mWzYX/myalyry0OGEmBDlnKJgNllu9Z9iwwXsoZkoba
-# M13JeX5Hnt4tWfsTQmE9lMWibVHlY8IGL7qdwZX5Qg6skQbVKkFvxUj7SeHhJ34/
-# fByI5OMGfOYkPOGPHf3dSnxWQos89WxIdu6i/tqBNw9H7xiFZHM5Y1jjPfqwymma
-# cMK+1PDVKfa3DtpwawrNgiyh92bKZiBcREPoC8j9kseTaLD0/Gme5dyzyLfipJ9I
-# V8VUy8ZoVpAp+kvODMWRbjdXCYRaEFALSpueQPHMbfY6ZVstiD9XgQ4eTVi1F23j
-# VLKhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
+# BgkqhkiG9w0BCQQxIgQgzNMS9yhS/v/nWS4p8+Pfs9TStcHse3Cn1bxXPf+79lUw
+# DQYJKoZIhvcNAQEBBQAEggIAcqnjwazYa3LTPHaQPkyDZfDtvHZG6X59Nanwm8EB
+# XclJTs2WK11+XbW4i/XqI9tBtk8B4DaIWZSs51D2HqjupWH8vaia6QT9oOtrNP+M
+# qA68YO/wTL9y2GmGgRrUx2jF9Gq2QaO8DrkP8aEsnXS7Ku7KZ6O0vgH2LJpLwV9k
+# iNquG0iHxFqqLVnnPP88WQJmYRt5PMYt3hy7qk4HbIV/bnIVAYG6ozZdaCpNiNyI
+# flOxp4LpVmhHPOyebVYGhxkMHPoHlO7El9CQJZIoOIgHsTcAHyV9nlFYcT2HEgkv
+# C/Xnvo8iszgSbvwsgmBA3OFHRO/C8BdI9vnEnw4YhKpr88avkTgb19wssL68oH6g
+# 9oQRzIKHu8nZA0xNL/btAzRXzRpXPkWnJ3RawYxpgO3m77QE4ajwmElECo3vo77d
+# 7AFBR6BQFv0OA5+BmSbIflem/7hM0VH3Oxq9Q8dUltGsEtMIctB+Sr09yUcLcn0K
+# d2zy8Bl96mzsA5QIgfQWZkRGW8mb29mEk51smgknElrHdOtGyNVJ9S+HAD59UxUP
+# PQ0f/qkXivQv2pWJ5B0Evz5s4Uw/fCfpf3nhOh93s7Wm34FsmJLVbQSfsTj0U2Nf
+# Z7uhRVOqy2JvwC3GhViSWZirZa9xZhUAxZEMkCMrufTQ+EeWu3VFWhuZnRk3Y76Y
+# MnGhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
 # TDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtD
 # ZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECEQCenAT2Vai0pwJtSYxseI2qMA0G
 # CWCGSAFlAwQCAgUAoIIBVzAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOVowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
+# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOFowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
 # IgQgz6HcNZ3tK8PLiQ+iMOXa93tUDxpuKyPdzxdU4Yz6oNUwPwYJKoZIhvcNAQkE
-# MTIEMIjgdnVxY1kGYCpPTSgiXEkcrZNWkBKhS1+e8eD++jvIB791Fsp9u11BFr/y
-# e5kzozCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
+# MTIEMF7FEDKUaHM9JnsWiwX4zeLz1jhyh8gPbSSNfYZpl6O/TvLtOu5qDH36gt45
+# j0S8djCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
 # RQfdnGpqMG8wWqRYMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0
 # YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAy
-# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIADN117Zgj
-# Uw4QeWmQmjzsIFrbS65e44fbDUzW+U+UiCvVi0SivNl38fejrwcZ1t2bhdQePiv2
-# Mku7K5bUrn8zvG9zVrIQ6q1Gs4CSsYGdLGXXChNBxXyntYRwJCM74MxduTH+sR//
-# EcawIh1wZTEYdMKJR//tU3064rVkUmRtF8eYi5BjLVMmk60/v3XtQykdHr7UdFfn
-# hV2ZAl6UGMHUcbHtEUVmg3BIhb03O9QemufY3PK+tg38+/q6pmH6JUpIhktnpEDH
-# AjSOe1fJaq1clQFiN+6aR34SpO+QGnGKG8aPqYt3w3jH0yGYfHUAU0XAaGYnaOG7
-# GnpNcol0LZZ7ZUJNkVaVTmxgU8T/zxYllqQ8TKLtMPBdqMCdTZYXtX0YOL7sj3J1
-# Td1xHfbOAHH+QR9J077AZBV5stCvOl9fJGt7LRhAsQN+NrwXLTh5ymjCtxg39BSs
-# V8GsGBOfvfUoYYewijtfHLM4NUZVW0cArW16qfrww4vo53HlyJ8bG/BVEyWrKPfy
-# MTVp/YoBNZOKYbmFdxCv54Gx2woYgg4VqObZ6uQa4KC/bONThGUZ2VEIC8EUSRWT
-# 0mNp7f7jSMW3pRWfddDBYyIG3yZzkkIa4VQTVZdMOMzxWjcHrJsxGBl42Ti3cMAR
-# 2IucKKt+czG0fWxvtZZG/OWXzPyGNZH60f8=
+# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIAsW38tzjw
+# cLYyJ3k1U3BsnR3J3F7722EIuRnVHwyH4OS/N5diJXQEqsZPA6FLxhBFmJuj5i7V
+# 0StIfO0Si+dfY4Z/th+Ltec30bJ9FM6HLtarFCQfnPHegkUrLs/LmqAiyp4A9Mnd
+# s/jBEYDUtNh1SwK0Xd8N/d8n7dgMXkLOsf9nVqFvhlr4R9Vq7gpvf+pNW9aq5g6v
+# KpNMilVr3LWVBoO4W01+LhIbZonmb4Ps5K1CekM9/FN0ECzaFoBnttoMNp2NlBrd
+# n7/9Sz9GjD/D5k6ZnpofK12McGymhrfB10v57F4+AftO/kIm1Um644grVhqB+CM2
+# 0WU/4fFZWdLRG72uNRR/3OHFYryS8bOhJcJG9Eckr3hNPQAIdFd0c71wJBEb3OIP
+# ej4MmTVsjYVna+N8cSoKZiqTr8wYJK5LQSvaNq/DS4/q6YCHQuy9a6vj3mXrMUhv
+# 88D2LtGgyGEBzBtHFnKarWd1gzjcG20+Pkp1ewtAK7YHdHKWFnlGRE+i5gRodDzx
+# ha2x82vC0UAib8IwyJbkYUUkUQjuuoX7rdbhP7OShuzwDfIlVHCxCG3rz0cGY3UB
+# NkCMYK8gEju+aRyfm4mVsvNg1nWcaW15ctwDhmZ1h/94XFWftbD8g0M+ebPU8f7W
+# 1GfxKstH3Y/SdXbmLFsXjuB1rHBAcHor48w=
 # SIG # End signature block

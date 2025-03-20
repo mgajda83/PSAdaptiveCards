@@ -1,92 +1,43 @@
-#RichTextBlock
-using module ./Base.psm1
+Function ConvertTo-GraphTeamsAttachment
+{
+	<#
+	.SYNOPSIS
+		Convert card to MSGraph Teams format.
+	.DESCRIPTION
+		Convert adaptive dard to MSGraph Teams attachment format.
+	.PARAMETER AdaptiveCard
+		AdaptiveCard object as JSON string.
+	.EXAMPLE
+		ConvertTo-GraphTeamsAttachment -AdaptiveCard $AdaptiveCard | ConvertTo-Json -EnumsAsStrings -Depth 15
+	#>
+	[CmdletBinding()]
+	param (
+		[String]$AdaptiveCard
+	)
 
-#Classes
-class TextRun {
-	[String] $type = "TextRun"
-	[String] $text
-	[nullable[Colors]] $color
-	[nullable[FontType]] $fontType
-	[nullable[Bool]] $highlight
-	[nullable[Bool]] $isSubtle
-	[nullable[Bool]] $italic
-	[nullable[FontSize]] $size
-	[nullable[Bool]] $strikethrough
-	[nullable[Bool]] $underline
-	[nullable[FontWeight]] $weight
-
-	TextRun() {}
-	TextRun([String]$Text)
-	{
-		$this.text = $Text
-	}
-	TextRun([Hashtable]$Properties)
-	{
-		foreach ($Property in $Properties.Keys) {
-			$this.$Property = $Properties.$Property
+	$AttachmentId = (New-Guid).Guid
+	$Attachment = @{
+		body = @{
+			contentType = "html"
+			content = "<attachment id=""$AttachmentId""></attachment>"
 		}
-	}
-}
-class RichTextBlock : Base {
-	[String] $type = "RichTextBlock"
-	[Object[]] $inlines = @()
-	[nullable[HorizontalAlignment]] $horizontalCellContentAlignment
-
-	RichTextBlock() {}
-	RichTextBlock([String]$Text)
-	{
-		$this.inlines = [TextRun]::new($Text)
-	}
-	RichTextBlock($Inlines)
-	{
-		$this.inlines = $Inlines
-	}
-}
-
-#Functions
-Function New-RichTextBlock
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		$Inlines
-	)
-
-	if($Text) {
-		$RichTextBlock = [RichTextBlock]::new($Text)
-	} elseif($Inlines) {
-		$RichTextBlock = [RichTextBlock]::new($Inlines)
-	} else {
-		$RichTextBlock = [RichTextBlock]::new()
+		attachments = @(
+			@{
+				id = "$AttachmentId"
+				contentType = "application/vnd.microsoft.card.adaptive"
+				content     = $AdaptiveCard
+			}
+		)
 	}
 
-	Return $RichTextBlock
-}
-
-Function New-TextRun
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		[Hashtable]$Properties
-	)
-
-	if($Text) {
-		$TextRun = [TextRun]::new($Text)
-	} elseif($Properties) {
-		$TextRun = [TextRun]::new($Properties)
-	} else {
-		$TextRun = [TextRun]::new()
-	}
-
-	Return $TextRun
+	Return $Attachment
 }
 
 # SIG # Begin signature block
 # MIIuNgYJKoZIhvcNAQcCoIIuJzCCLiMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAV8yF2q1fYjcCH
-# ScbA61Qhuf+Sn1I0FWgFK/Oav+9ie6CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCBGYkX+d4H4RWXP
+# Q1a74Ign9Uzl547pKKcI8fKswYQpKaCCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
 # AEkoya49fu0nMA0GCSqGSIb3DQEBDAUAMH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQK
 # ExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2Vy
 # dGlmaWNhdGlvbiBBdXRob3JpdHkxIjAgBgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5l
@@ -296,38 +247,38 @@ Function New-TextRun
 # dW0gQ29kZSBTaWduaW5nIDIwMjEgQ0ECED8vBp9ca4iemmXFUwZ0lhUwDQYJYIZI
 # AWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0B
 # CQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAv
-# BgkqhkiG9w0BCQQxIgQg6z8pWwL0gZwQKpXMHcmtryBoEitrG4Y2DJQ2GKIFEbcw
-# DQYJKoZIhvcNAQEBBQAEggIAFwpNbrN+98G3H79f1th9wdsTJakGhqEExdvuYTxz
-# JT8vee+8yrvurzYw3qr0RKaONi8khFTs7z+gcyOpvf/RhGzHM6jyvigPwhcmkM2J
-# M6RDYFusb9MrCVI6bfRZtpAzcbKf/RozFDBHksCHr4hiFwmK/XeIN45ezqspVQRM
-# X2TUj/pQgXfa+mn/CGX9eXTvtCePzxMuwJX0YCy1Ow1Ugo7lWOJMzjhIIEWNFRtC
-# DhTUMaezb0VuJJI/Lu2++d0sFLDmfeKB8WbMccSE9mOlEeQ67fzYK96LPLlO494Y
-# 46YPIMeR3DLTaXWcZkcImMg4rTMGMPK/P5SkBAu7dN/55zoDRh5K+b4+dxcIcsDl
-# nyfIghfoFSOzVQ0kVa5N/mWzYX/myalyry0OGEmBDlnKJgNllu9Z9iwwXsoZkoba
-# M13JeX5Hnt4tWfsTQmE9lMWibVHlY8IGL7qdwZX5Qg6skQbVKkFvxUj7SeHhJ34/
-# fByI5OMGfOYkPOGPHf3dSnxWQos89WxIdu6i/tqBNw9H7xiFZHM5Y1jjPfqwymma
-# cMK+1PDVKfa3DtpwawrNgiyh92bKZiBcREPoC8j9kseTaLD0/Gme5dyzyLfipJ9I
-# V8VUy8ZoVpAp+kvODMWRbjdXCYRaEFALSpueQPHMbfY6ZVstiD9XgQ4eTVi1F23j
-# VLKhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
+# BgkqhkiG9w0BCQQxIgQgT6G+zCpFHumD2ArWzJ+ZTFR+Xda+QC5DDEnpAlZolzUw
+# DQYJKoZIhvcNAQEBBQAEggIAdypTifCSJ7JwXxgriil5x7RwE7BUzXWcOrrO2Rim
+# RnmRLfsWWYX8Ktn1q4/VcyssA7jmhJpZgZ3T+u7JzfndU7yw/rPCLUtWEiH6v1/d
+# 01a8BAzpyiA+Dl6UkM7wZ3bTgHsh4uYj5uoxx6hRY4usO14PlA1TtuqFswN32JWn
+# b0kNkMsBw/NVq4eDSzO4cBVxjxPkYnO8mEUr3DQyPuGQcpYtLPmwp/i6FXfX54Ax
+# rk05SP8TeP+yDsXi6P8+vvGNo2I2ILqJPXZCvifwst2o89AFvSEwuac8+Ogeu8Cx
+# Jfx6e9SjFa/yLdgy0JiQNnR/FLtwg3d3NS0kDJulBFk2kRL76P2Un+rN9Zb+ba2i
+# GW3DoG+BY98dB30aRBg+qUpO32UEY5i0yFkJWUF/ThN7en8U+r4l/O1Hvm8ITrQl
+# qedvIBnDqziNKoyEMQXvtnQeGJgNrGZ1NWcgbaZKoyC0dMZrWPwMe1+1FFZA8GIy
+# ZuLcRTyNjGUy+i5yP4IZjfluxGlaZIPvBbPQGzG919QyEucqxb0uANrCFumqlTRm
+# hMW4Gmspx+p46X4VywJcH1+A9gEcRiW6suHHPr43i0GI1SonnxNcbiA/CO6bjMiZ
+# mrKm3NipIVnNZKoXbapVxMzEdAFDH/voX7lY/5MwBsjpLfDp5lze6ssqLyLnkijT
+# I8qhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
 # TDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtD
 # ZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECEQCenAT2Vai0pwJtSYxseI2qMA0G
 # CWCGSAFlAwQCAgUAoIIBVzAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOVowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
+# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczN1owNwYLKoZIhvcNAQkQAi8xKDAmMCQw
 # IgQgz6HcNZ3tK8PLiQ+iMOXa93tUDxpuKyPdzxdU4Yz6oNUwPwYJKoZIhvcNAQkE
-# MTIEMIjgdnVxY1kGYCpPTSgiXEkcrZNWkBKhS1+e8eD++jvIB791Fsp9u11BFr/y
-# e5kzozCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
+# MTIEMEWkmsjEJo3e9DejXQ1yLNnD5zkKlRRxv/ft4gpf59Hea4xqS0STn235OAnd
+# a4l2qDCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
 # RQfdnGpqMG8wWqRYMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0
 # YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAy
-# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIADN117Zgj
-# Uw4QeWmQmjzsIFrbS65e44fbDUzW+U+UiCvVi0SivNl38fejrwcZ1t2bhdQePiv2
-# Mku7K5bUrn8zvG9zVrIQ6q1Gs4CSsYGdLGXXChNBxXyntYRwJCM74MxduTH+sR//
-# EcawIh1wZTEYdMKJR//tU3064rVkUmRtF8eYi5BjLVMmk60/v3XtQykdHr7UdFfn
-# hV2ZAl6UGMHUcbHtEUVmg3BIhb03O9QemufY3PK+tg38+/q6pmH6JUpIhktnpEDH
-# AjSOe1fJaq1clQFiN+6aR34SpO+QGnGKG8aPqYt3w3jH0yGYfHUAU0XAaGYnaOG7
-# GnpNcol0LZZ7ZUJNkVaVTmxgU8T/zxYllqQ8TKLtMPBdqMCdTZYXtX0YOL7sj3J1
-# Td1xHfbOAHH+QR9J077AZBV5stCvOl9fJGt7LRhAsQN+NrwXLTh5ymjCtxg39BSs
-# V8GsGBOfvfUoYYewijtfHLM4NUZVW0cArW16qfrww4vo53HlyJ8bG/BVEyWrKPfy
-# MTVp/YoBNZOKYbmFdxCv54Gx2woYgg4VqObZ6uQa4KC/bONThGUZ2VEIC8EUSRWT
-# 0mNp7f7jSMW3pRWfddDBYyIG3yZzkkIa4VQTVZdMOMzxWjcHrJsxGBl42Ti3cMAR
-# 2IucKKt+czG0fWxvtZZG/OWXzPyGNZH60f8=
+# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIAAsqiVH9v
+# FQxDJdTUkjtUudTeIhqYZpqa0YXXVV8usN9ezJC7OAn6TszUqRn3W27A5xfqO0Zs
+# z4f/P5IsZrDfTq0xhwQrHRHZshIzjgfmk4kZ9r49OSRGlpkrA7823zNfn6v/Duau
+# Caf0XngFccB+qq19uvgC7E+yAHTdaShAlj4nwUro2eZGDeKjl9JQdxTH+cR0BdtW
+# WeCz6WMiihrVXajOc0tAa1+CAQHJZn1cdtBG6t5sCApdZAwhd3u8aGb9FNPniSDY
+# ulglukmPgrTIn1LeCYfd4mG+9v19IUgz0wguSr8eEXLGeOn7y9dIUg1EuAY9mZ7q
+# ICI49Adk8ylHuK+DrantJrx7tephFwClJ8vLb9Lo/O8SC/N1vtDoZAWPsTZL276g
+# AHgfvUimXPfH0TDhHUy9Hdg1tp/L3vGcNoi5hwiCbFYUNiT3FaWgtXhVVKnUpLti
+# u+NE3DVJAC0txz8n3ODhzahplIgns5yQAEbeX8BESYPWvi/FVt2tFuNLK+omhMzr
+# 0pZSqZ5ccSYEPGjYR8aYbe5HVr7hI/+lbq5owXVz0PW4LCH9vOjs1GKBGONHGRCM
+# m3vN/JZjmLExhyohtrVR9Cu/MRnklIrD3MCNI4djlfFMfB2rMOsrh6yEHdljITDf
+# I+HgdiWOxqVQCRyQigzdqE3RvHHp8E3fExk=
 # SIG # End signature block

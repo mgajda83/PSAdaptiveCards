@@ -12,7 +12,7 @@
 	RootModule = 'PSAdaptiveCards.psm1'
 
 	# Version number of this module.
-	ModuleVersion = '1.0.0.0'
+	ModuleVersion = '1.0.0.4'
 
 	# Supported PSEditions
 	# CompatiblePSEditions = @()
@@ -33,7 +33,7 @@
 	Description = 'Set of classes to build AdaptiveCard object'
 
 	# Minimum version of the Windows PowerShell engine required by this module
-	# PowerShellVersion = ''
+	PowerShellVersion = '7.2'
 
 	# Name of the Windows PowerShell host required by this module
 	# PowerShellHostName = ''
@@ -69,7 +69,8 @@
 	# NestedModules = @()
 
 	# Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-	FunctionsToExport = @("New-AdaptiveCard", "New-AdaptiveCardAsAttachment",
+	FunctionsToExport = @("Remove-NullProperties", "ConvertTo-ChatBotAttachment", "ConvertTo-GraphTeamsAttachment", "New-BaseMessage",
+		"New-AdaptiveCard",
 		"New-ActionSet", "New-Action",
 		"New-CodeBlock",
 		"New-ColumnSet", "New-Column",
@@ -105,7 +106,7 @@
 		PSData = @{
 
 			# Tags applied to this module. These help with module discovery in online galleries.
-			Tags = @("Teams", "AdaptiveCard", "ChatBot")
+			Tags = @("Teams", "AdaptiveCards", "ChatBot")
 
 			# A URL to the license for this module.
 			LicenseUri = 'https://github.com/mgajda83/PSAdaptiveCards#MIT-1-ov-file'
@@ -134,8 +135,8 @@
 # SIG # Begin signature block
 # MIIuNgYJKoZIhvcNAQcCoIIuJzCCLiMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDCxK9Ev4liODqj
-# YTUSWVZFUEgAB8zdtshiE4g0LCYOoaCCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCA4r1BPNOVwzH4Q
+# V348boZOX7uOkF8BFqivBXzJKmx316CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
 # AEkoya49fu0nMA0GCSqGSIb3DQEBDAUAMH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQK
 # ExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2Vy
 # dGlmaWNhdGlvbiBBdXRob3JpdHkxIjAgBgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5l
@@ -345,38 +346,38 @@
 # dW0gQ29kZSBTaWduaW5nIDIwMjEgQ0ECED8vBp9ca4iemmXFUwZ0lhUwDQYJYIZI
 # AWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0B
 # CQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAv
-# BgkqhkiG9w0BCQQxIgQgbEGh7jXRGbH8twmh9KGfDCuLp7aHxy7dkN1wbUwAP8Aw
-# DQYJKoZIhvcNAQEBBQAEggIAJJFo/xP7U5lVop5r3RI5jXvv/YphFezN9BVTLRoA
-# FaGjnr/zmTEliawaNUUfzvQ0FEzxBSe8Mqe72FNCUPUEw+nfPTTFpKPGaxbSAvZy
-# yCnzWYC7CLNuXpFX6MbQ8SCViLQ5pUfaYTLeSkG1U3cByzWajvl/rPLlxvzDISfI
-# UfJ5ao7KL7K2FTTVBrMrfu9IyvnwC/mmTJ7AUZ4AjbA51mxWLtfihaRU0Ogpzb4/
-# S6Tt5L7XYnHB4ydW0jPxjCa7voq8Op0O5clPzSjvmCZvvvGAJrcF1Pf05LIMBkZS
-# 7SXromE+Zm17vB8lWrsIc+FmzZdbyXByREdqJgbIT590Vr7v7lhZJU8tNIwev8cK
-# XPIg+9KKWH8bDyLGL6PQKfa16Iawl+SFTY/6727JpbSj+3pa+1WGcJEROydZyZo1
-# CGGjRl5uvq/5abGTo8D5lQs+DgootnRJiogGIXmfqSLWaZltoQo0Lbe1l+NiqLIn
-# vnC1k15ECVNuf1qGXqDia0tGcT7e+KVVF51U2q9GQPhKwekFDM1BUi9GYjunEgXt
-# YQctlR5sms6T202OE3DjMiZ8nryATGr3QHsUWhHpbkQU8i0sVE0Gh9wJ3Ya3MBQB
-# xGhBpoj1YabGQ5TloU1JfAKTgr/7+j83y1RDDrn4/7IU1t/08a8LacXlikr3mQq5
-# TWChggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
+# BgkqhkiG9w0BCQQxIgQgxDlCNprAHo/P9BViS6AJDrP3AKWpq7LXvWX3tMzq9Xkw
+# DQYJKoZIhvcNAQEBBQAEggIASwRq4zAWqDubZDXv4RuTfkfn9zZu83+KYlOC1osk
+# F7zeyHqD+PmpJ2k2g1O5l+Y57n8oSlNYLvZ/nk4celtzEt7xIdgYcXBaSiyr71Gm
+# Uv32IKtlt8Pk1XJQ0N/+W+R6MPxj/3yVT9bwJAj0l5yNCHh++vVbUYBt5AVX4lRk
+# a5mU2SbfSVjZjCiUwXGOxT8jMKmjblunJhTIlOiKRJFtdmCG2AsKhNhS0AvTRDJS
+# dFksWbYNx/TlDwql/1rAHFn7hzb8Qq2Sv6351W2VvyIzjLl/COkYEXXQggbJrRJf
+# hrtdQ0CduGoyCv5KVyUWNlciNqMbixuo7U7u1krJnNcWWK4FYsESJLi4k232qhSA
+# MLxmpZJLPHPE9nL+LPA7TWDvBl0I3O1ReOkAburVLrgFm+FOwwEO/R4EFhpSmV9f
+# qAsp0CQeMlr7YJQ4UMCAtq+ho61Pqe/xLvjCQTAVct2EcxorP3UxHyM+VXGJYDOP
+# sWZxlEQNcuzzRFgsVxEgp7Ox8QlyJh1qMjo3MWkyZprDh7QrZfPAKb+YrPOKup1k
+# xJqxeOdin+h/KeeOETkQL1uvxX56tc2zpgGYBjapMwrhf4/TO0R6A+cbGHTLYnz6
+# 2oBkmDE7LPfPVmsusZLRw4oLp3WhZM/6Qqg3gCcgkG1hF7Jo2IhmysopYYtMVJlV
+# HtChggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
 # TDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtD
 # ZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECEQCenAT2Vai0pwJtSYxseI2qMA0G
 # CWCGSAFlAwQCAgUAoIIBVzAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDMxODA3NDQxOVowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
+# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOFowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
 # IgQgz6HcNZ3tK8PLiQ+iMOXa93tUDxpuKyPdzxdU4Yz6oNUwPwYJKoZIhvcNAQkE
-# MTIEMMWsItgm1p7b1p6BCgbTl0CYASo4J/nm+QVwYSWSNN50xmPcVZbjOhqSdkSD
-# F2kpGjCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
+# MTIEMD0sxOIWuKd32CP6fPKoBwOTYWWyShOeh8pp5/XgV0ml13l+6Vzxrd4osvqc
+# b0rtHzCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
 # RQfdnGpqMG8wWqRYMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0
 # YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAy
-# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIAxZLGbubq
-# 5SjBrhoCzgk+T8GVLkAXT6bMHLOlbIWi+IQSIqMpxGD7WAqp8C9bSIvCPJfeuHsT
-# cM/bL5mXSkefqGjLjkkiwYi2bWF5yf03/KSzEBtkR8LorxMYbGi6wz1DjeQ4Yj/l
-# r5kvenwtfwPsFCL3NvzoCaC5xBG3lC9MaLaZFjF35W4SinYATMA4z73lX3qSlvMY
-# wC7RviuBtRBdTWQrIK1gLlVYb19ap298CS5Aoxm/tcbzMoA9W4UL3KEDtbU/3ul6
-# lMjTrN7MJ2WJ6NmXAp2jRS8opoqXMbPsDF1u6FOcjmHFiVV1sItz5nI6ysY6Jne4
-# Vn/VqYIJupsm+lyQTVeyTkk/eNKaRpNlLoTvZWrxMntKMu8TCCayrUPsW9X0kVOT
-# ogjH8svxoX9z6QdV5P7ZBXWwLr5DMsIDK8EyKzlLntuQFUgBFeVYH3W1cyphOiN7
-# 0dTyRCx/oqfYkhwGpo7khDokTb3HCpGJOQpComgxUSdzW+rqKwBG6lcH1UK86a9B
-# vcBAHy+OK+gwJXMtwE1t4m0VDGbB8icvMeCN6oxo21cWvrgj5wme0w5Tn8a1CyL1
-# 6QHPqHpGKsQPeY3jKkRxofBQ0tjcZVLyWQskeCC3KwoD6NuNo2TiMii0WJ9WMhPx
-# HiyQZ2wgQQzSE2o1aebWkGyaGCyqlqNjF1k=
+# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIAD1Pe4YtN
+# bMcpG26jemjA3KFVenhqZDDh5NXDq1OdJOF8yXz7AtSjlZ1bPfLsLy21nh8RQkmy
+# yGxLmPvsyCc8qDXiUn7tGTkVRmh0LM0GVer0omd5tVxGRi82FlmlTMUPHw+Y7qGY
+# K5J8z8/ncSDnKbNfeE5FvKnABh2EKUuwNm76gDH5f/hMF4lkamxzvkQdIiH2AUTJ
+# PHb1AKfg642HHpQVhO57avVNmghhpEfVsM5ZwKyB9rQcwMjjlTt1tWENXe0n/hVE
+# DjlH2hcbri6FzmqrVm17WSYon17PJB1by4iNM0N9OxYXFCTSmr9NNd+BMkY4q0g7
+# 8aJsgM/WHW9YEfvrkD4DIUEaMi6MTwxgcTLpnDkB9I4Cp3WlPweQZDkyvzRwWr1A
+# 5vfWVEupTvHu1alqWPl9ZSHgQxWfaGHemzFgvGdqSjVmXAdpOMWOLxIEkNvCTnQX
+# DQPKn0x9yle7TPRCxggT30bW5a3SMtR4iX61zrN4VO+eDrefeEhuS7uCkfCzWjBu
+# 8eC30EO0K8nF0yathxyk7ruQnQRuE/T35qKk2FTMBadXSSt69UkkLbCP4qUHH9Ic
+# iN/Bsoi2mWBERaJti80ZURC+n2Z5VDeZYeSOYvO37pkyfWHlCn25hG+SdMQh/Rpr
+# U0crKYg+GjXB4H90hOIm8UtS7qgj9wD5YXk=
 # SIG # End signature block

@@ -1,92 +1,33 @@
-#RichTextBlock
-using module ./Base.psm1
-
-#Classes
-class TextRun {
-	[String] $type = "TextRun"
-	[String] $text
-	[nullable[Colors]] $color
-	[nullable[FontType]] $fontType
-	[nullable[Bool]] $highlight
-	[nullable[Bool]] $isSubtle
-	[nullable[Bool]] $italic
-	[nullable[FontSize]] $size
-	[nullable[Bool]] $strikethrough
-	[nullable[Bool]] $underline
-	[nullable[FontWeight]] $weight
-
-	TextRun() {}
-	TextRun([String]$Text)
-	{
-		$this.text = $Text
-	}
-	TextRun([Hashtable]$Properties)
-	{
-		foreach ($Property in $Properties.Keys) {
-			$this.$Property = $Properties.$Property
-		}
-	}
-}
-class RichTextBlock : Base {
-	[String] $type = "RichTextBlock"
-	[Object[]] $inlines = @()
-	[nullable[HorizontalAlignment]] $horizontalCellContentAlignment
-
-	RichTextBlock() {}
-	RichTextBlock([String]$Text)
-	{
-		$this.inlines = [TextRun]::new($Text)
-	}
-	RichTextBlock($Inlines)
-	{
-		$this.inlines = $Inlines
-	}
-}
-
-#Functions
-Function New-RichTextBlock
+Function ConvertTo-ChatBotAttachment
 {
+	<#
+	.SYNOPSIS
+		Convert card to ChatBot format.
+	.DESCRIPTION
+		Convert adaptive dard to ChatBot attachment format.
+	.PARAMETER AdaptiveCard
+		AdaptiveCard object.
+	.EXAMPLE
+		ConvertTo-ChatBotAttachment -AdaptiveCard $AdaptiveCard | ConvertTo-Json -EnumsAsStrings -Depth 15
+	#>
 	[CmdletBinding()]
 	param (
-		[String]$Text,
-		$Inlines
+		$AdaptiveCard
 	)
 
-	if($Text) {
-		$RichTextBlock = [RichTextBlock]::new($Text)
-	} elseif($Inlines) {
-		$RichTextBlock = [RichTextBlock]::new($Inlines)
-	} else {
-		$RichTextBlock = [RichTextBlock]::new()
+	$Attachment = @{
+		contentType = "application/vnd.microsoft.card.adaptive"
+		content     = $AdaptiveCard
 	}
 
-	Return $RichTextBlock
-}
-
-Function New-TextRun
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		[Hashtable]$Properties
-	)
-
-	if($Text) {
-		$TextRun = [TextRun]::new($Text)
-	} elseif($Properties) {
-		$TextRun = [TextRun]::new($Properties)
-	} else {
-		$TextRun = [TextRun]::new()
-	}
-
-	Return $TextRun
+	Return $Attachment
 }
 
 # SIG # Begin signature block
 # MIIuNgYJKoZIhvcNAQcCoIIuJzCCLiMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAV8yF2q1fYjcCH
-# ScbA61Qhuf+Sn1I0FWgFK/Oav+9ie6CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDxuKYP6cWbhw/6
+# mzUA93LpbQ3f091PIgekOfQxVb1lPKCCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
 # AEkoya49fu0nMA0GCSqGSIb3DQEBDAUAMH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQK
 # ExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2Vy
 # dGlmaWNhdGlvbiBBdXRob3JpdHkxIjAgBgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5l
@@ -296,38 +237,38 @@ Function New-TextRun
 # dW0gQ29kZSBTaWduaW5nIDIwMjEgQ0ECED8vBp9ca4iemmXFUwZ0lhUwDQYJYIZI
 # AWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0B
 # CQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAv
-# BgkqhkiG9w0BCQQxIgQg6z8pWwL0gZwQKpXMHcmtryBoEitrG4Y2DJQ2GKIFEbcw
-# DQYJKoZIhvcNAQEBBQAEggIAFwpNbrN+98G3H79f1th9wdsTJakGhqEExdvuYTxz
-# JT8vee+8yrvurzYw3qr0RKaONi8khFTs7z+gcyOpvf/RhGzHM6jyvigPwhcmkM2J
-# M6RDYFusb9MrCVI6bfRZtpAzcbKf/RozFDBHksCHr4hiFwmK/XeIN45ezqspVQRM
-# X2TUj/pQgXfa+mn/CGX9eXTvtCePzxMuwJX0YCy1Ow1Ugo7lWOJMzjhIIEWNFRtC
-# DhTUMaezb0VuJJI/Lu2++d0sFLDmfeKB8WbMccSE9mOlEeQ67fzYK96LPLlO494Y
-# 46YPIMeR3DLTaXWcZkcImMg4rTMGMPK/P5SkBAu7dN/55zoDRh5K+b4+dxcIcsDl
-# nyfIghfoFSOzVQ0kVa5N/mWzYX/myalyry0OGEmBDlnKJgNllu9Z9iwwXsoZkoba
-# M13JeX5Hnt4tWfsTQmE9lMWibVHlY8IGL7qdwZX5Qg6skQbVKkFvxUj7SeHhJ34/
-# fByI5OMGfOYkPOGPHf3dSnxWQos89WxIdu6i/tqBNw9H7xiFZHM5Y1jjPfqwymma
-# cMK+1PDVKfa3DtpwawrNgiyh92bKZiBcREPoC8j9kseTaLD0/Gme5dyzyLfipJ9I
-# V8VUy8ZoVpAp+kvODMWRbjdXCYRaEFALSpueQPHMbfY6ZVstiD9XgQ4eTVi1F23j
-# VLKhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
+# BgkqhkiG9w0BCQQxIgQg9CoDShzo489J7L5dzwH+Bv1GT1geiTIKp0WMV45wfdAw
+# DQYJKoZIhvcNAQEBBQAEggIAaYhd5BKMpNhdmBPbqdozfMFNV2kt5jmFNzuhFwbZ
+# eQIHkiIdU9eck4oALix+ePT+pjrgZqzKVeW/4U/vFqHe53uuVlqrMeNh/jikku5N
+# CrkxI0lWFXT/oDSr6U19IPqmluyhFpwq0EkCy2sTIO4CHjaoBw9TW0SuYcDJTRTh
+# meBvEtxnlONKbcHoOfRSTcoEToP0rarmzd8LnjMGGWlTAP68vFBHzidYHVxABjqC
+# lGYXdcAKhqEAWjxY7uQdBgW7YBaDs/b7W2Bw9YRJcECMQ1DFL0JenGMtQGmSaA4N
+# c5SiSs5SVXI3Jmr2ns70dMLyQhFV2Q5Xq7m1Ri8tcO9eGVz9zftma2Z8pTZKpX6q
+# njxOcVERL3SHSCp/nJ6SSGRurlUHUEPeRNiwjwuR7bwO/uv213C3zr5m5FzM1hPr
+# eGsyOWV/ymrQ6hs90cMRrBkS+7zgIJI8fI2X81YyLk4ge05v8znVWOG5E97F8d4d
+# y9QhESYvuUPZHEoqE2GY8xNYmdDmi84rrsGyILZ9X8whLzDFDDqgrP1U3bvgugFn
+# ruV2y0jIbd463KzgdqfMaKTMVMWHvFRA1b31/AOmP1SM11R40l5oGybAu8w5CiQs
+# 0aN/09X8Y1FHr1kIw6SkK7okxHUXbbLstMq8Vrugcw9m4GjfNhrM+1wQm/8J7p/n
+# c3GhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
 # TDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtD
 # ZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECEQCenAT2Vai0pwJtSYxseI2qMA0G
 # CWCGSAFlAwQCAgUAoIIBVzAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
-# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOVowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
+# KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczN1owNwYLKoZIhvcNAQkQAi8xKDAmMCQw
 # IgQgz6HcNZ3tK8PLiQ+iMOXa93tUDxpuKyPdzxdU4Yz6oNUwPwYJKoZIhvcNAQkE
-# MTIEMIjgdnVxY1kGYCpPTSgiXEkcrZNWkBKhS1+e8eD++jvIB791Fsp9u11BFr/y
-# e5kzozCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
+# MTIEMJ9TDHfAcq32IGDwOXnyQOSDQj1MNO/iHrB7aCC5oP4Y6RgHCRd7S41eP864
+# gs437TCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
 # RQfdnGpqMG8wWqRYMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0
 # YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAy
-# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIADN117Zgj
-# Uw4QeWmQmjzsIFrbS65e44fbDUzW+U+UiCvVi0SivNl38fejrwcZ1t2bhdQePiv2
-# Mku7K5bUrn8zvG9zVrIQ6q1Gs4CSsYGdLGXXChNBxXyntYRwJCM74MxduTH+sR//
-# EcawIh1wZTEYdMKJR//tU3064rVkUmRtF8eYi5BjLVMmk60/v3XtQykdHr7UdFfn
-# hV2ZAl6UGMHUcbHtEUVmg3BIhb03O9QemufY3PK+tg38+/q6pmH6JUpIhktnpEDH
-# AjSOe1fJaq1clQFiN+6aR34SpO+QGnGKG8aPqYt3w3jH0yGYfHUAU0XAaGYnaOG7
-# GnpNcol0LZZ7ZUJNkVaVTmxgU8T/zxYllqQ8TKLtMPBdqMCdTZYXtX0YOL7sj3J1
-# Td1xHfbOAHH+QR9J077AZBV5stCvOl9fJGt7LRhAsQN+NrwXLTh5ymjCtxg39BSs
-# V8GsGBOfvfUoYYewijtfHLM4NUZVW0cArW16qfrww4vo53HlyJ8bG/BVEyWrKPfy
-# MTVp/YoBNZOKYbmFdxCv54Gx2woYgg4VqObZ6uQa4KC/bONThGUZ2VEIC8EUSRWT
-# 0mNp7f7jSMW3pRWfddDBYyIG3yZzkkIa4VQTVZdMOMzxWjcHrJsxGBl42Ti3cMAR
-# 2IucKKt+czG0fWxvtZZG/OWXzPyGNZH60f8=
+# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIAGuGy3C/D
+# U6/cWqtSdkkaxQYgWTkhc6BO8kA3T+3/Bp+Rrjd4uh8tR51LzotvQkHsnrEzdpNN
+# YbRpp9S4eQeb2PRadljfokXoAkCHieb5hiNx+xYJOXwoUVUoowYbeGQXGDsmPy7Q
+# BRZBq/E1K2RqyMPYH5gsG/OMSRndbmIWz8uSYTozzizHDnWFMeJo/SXvop1fFAmc
+# WlDyQs3kS6CmuQwHbITP8NhDzP63X3IuNxvcyastlVpcM6RwKcU1GQj1ngefARYQ
+# r9VohpLHDOTrFQEuCGo578MdTq4SaocEk6s1g/bivpooilIEILMEIl7Yir5OhX1b
+# BqKADoNZOKC906A+dZ+ROCYEVsCHM8p85TZKr2RMziU62BLao1ADIL/ti4l0ZL+D
+# EO5WaQwZsp7wfBzDSaMeUV64jxvBrM6o6eq5Z03oRLAnMfWlc9Fe2T8CIXmM1HEY
+# eofMC7uW2lRFb4VT7uynolP6p1gGYtd6B/6u354qp+FWb8LLUZ1ODp0Hjnwyh2/f
+# 6H7tPGXTiWZD2qCEuDMZYc2E5lljNsC/+fmyRziclvq4QMB3nInL1pDJqgXd+OwT
+# ldpFkpK/+EhrPumV0FNPC1ait2lYuGTUpE3OvsEBERY+SxpnxZgxMGTZQkiC7olN
+# JcbdfQ1ebt/eUS9FeZ7LMi1fGrMs+UasRcM=
 # SIG # End signature block

@@ -1,92 +1,59 @@
-#RichTextBlock
-using module ./Base.psm1
+Function Remove-NullProperties
+{
+	<#
+	.SYNOPSIS
+		Removes null properties from an object.
+	.DESCRIPTION
+		This function recursively removes all null properties from a PowerShell object.
+	.PARAMETER InputObject
+		A PowerShell Object from which to remove null properties.
+	.EXAMPLE
+		$Object | Remove-NullProperties
+	#>
+	[CmdletBinding()]
+	param(
+		[Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+		[Object]$InputObject
+	)
 
-#Classes
-class TextRun {
-	[String] $type = "TextRun"
-	[String] $text
-	[nullable[Colors]] $color
-	[nullable[FontType]] $fontType
-	[nullable[Bool]] $highlight
-	[nullable[Bool]] $isSubtle
-	[nullable[Bool]] $italic
-	[nullable[FontSize]] $size
-	[nullable[Bool]] $strikethrough
-	[nullable[Bool]] $underline
-	[nullable[FontWeight]] $weight
+	if($InputObject -is [Hashtable]) { $InputObject = [PSCustomObject]$InputObject }
 
-	TextRun() {}
-	TextRun([String]$Text)
+	$NewObjects = @()
+	Foreach ($Object in $InputObject)
 	{
-		$this.text = $Text
-	}
-	TextRun([Hashtable]$Properties)
-	{
-		foreach ($Property in $Properties.Keys) {
-			$this.$Property = $Properties.$Property
+		#Is just property
+		if ($Object -is [string] -or $Object.GetType().IsPrimitive)
+		{
+			Return $Object
 		}
-	}
-}
-class RichTextBlock : Base {
-	[String] $type = "RichTextBlock"
-	[Object[]] $inlines = @()
-	[nullable[HorizontalAlignment]] $horizontalCellContentAlignment
 
-	RichTextBlock() {}
-	RichTextBlock([String]$Text)
-	{
-		$this.inlines = [TextRun]::new($Text)
-	}
-	RichTextBlock($Inlines)
-	{
-		$this.inlines = $Inlines
-	}
-}
+		#Is Object
+		$PropertyList = $Object.PSObject.Properties | Where-Object { $null -ne $_.Value -and $_.Name -ne "value__" }
+		$NewObject = $Object | Select-Object $PropertyList.Name
 
-#Functions
-Function New-RichTextBlock
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		$Inlines
-	)
-
-	if($Text) {
-		$RichTextBlock = [RichTextBlock]::new($Text)
-	} elseif($Inlines) {
-		$RichTextBlock = [RichTextBlock]::new($Inlines)
-	} else {
-		$RichTextBlock = [RichTextBlock]::new()
+		Foreach ($Property in $PropertyList)
+		{
+			Write-Verbose "$($Property.Name): $($Property.Value.GetType())"
+			if($NewObject.$($Property.Name) -is [Object[]])
+			{
+				#Is ObjectArray then return as Array
+				$NewObject.$($Property.Name) = @(Remove-NullProperties $Property.Value)
+			} else {
+				#Is Object then return as Object
+				$NewObject.$($Property.Name) = Remove-NullProperties $Property.Value
+			}
+		}
+		$NewObjects += $NewObject
 	}
 
-	Return $RichTextBlock
-}
-
-Function New-TextRun
-{
-	[CmdletBinding()]
-	param (
-		[String]$Text,
-		[Hashtable]$Properties
-	)
-
-	if($Text) {
-		$TextRun = [TextRun]::new($Text)
-	} elseif($Properties) {
-		$TextRun = [TextRun]::new($Properties)
-	} else {
-		$TextRun = [TextRun]::new()
-	}
-
-	Return $TextRun
+	Return $NewObjects
 }
 
 # SIG # Begin signature block
 # MIIuNgYJKoZIhvcNAQcCoIIuJzCCLiMCAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAV8yF2q1fYjcCH
-# ScbA61Qhuf+Sn1I0FWgFK/Oav+9ie6CCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCAeiO8KXOx4Hw+2
+# rDP5XvVtKTGO0vunjn8IzCSlRl872qCCJmgwggXJMIIEsaADAgECAhAbtY8lKt8j
 # AEkoya49fu0nMA0GCSqGSIb3DQEBDAUAMH4xCzAJBgNVBAYTAlBMMSIwIAYDVQQK
 # ExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2Vy
 # dGlmaWNhdGlvbiBBdXRob3JpdHkxIjAgBgNVBAMTGUNlcnR1bSBUcnVzdGVkIE5l
@@ -296,38 +263,38 @@ Function New-TextRun
 # dW0gQ29kZSBTaWduaW5nIDIwMjEgQ0ECED8vBp9ca4iemmXFUwZ0lhUwDQYJYIZI
 # AWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkqhkiG9w0B
 # CQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGCNwIBFTAv
-# BgkqhkiG9w0BCQQxIgQg6z8pWwL0gZwQKpXMHcmtryBoEitrG4Y2DJQ2GKIFEbcw
-# DQYJKoZIhvcNAQEBBQAEggIAFwpNbrN+98G3H79f1th9wdsTJakGhqEExdvuYTxz
-# JT8vee+8yrvurzYw3qr0RKaONi8khFTs7z+gcyOpvf/RhGzHM6jyvigPwhcmkM2J
-# M6RDYFusb9MrCVI6bfRZtpAzcbKf/RozFDBHksCHr4hiFwmK/XeIN45ezqspVQRM
-# X2TUj/pQgXfa+mn/CGX9eXTvtCePzxMuwJX0YCy1Ow1Ugo7lWOJMzjhIIEWNFRtC
-# DhTUMaezb0VuJJI/Lu2++d0sFLDmfeKB8WbMccSE9mOlEeQ67fzYK96LPLlO494Y
-# 46YPIMeR3DLTaXWcZkcImMg4rTMGMPK/P5SkBAu7dN/55zoDRh5K+b4+dxcIcsDl
-# nyfIghfoFSOzVQ0kVa5N/mWzYX/myalyry0OGEmBDlnKJgNllu9Z9iwwXsoZkoba
-# M13JeX5Hnt4tWfsTQmE9lMWibVHlY8IGL7qdwZX5Qg6skQbVKkFvxUj7SeHhJ34/
-# fByI5OMGfOYkPOGPHf3dSnxWQos89WxIdu6i/tqBNw9H7xiFZHM5Y1jjPfqwymma
-# cMK+1PDVKfa3DtpwawrNgiyh92bKZiBcREPoC8j9kseTaLD0/Gme5dyzyLfipJ9I
-# V8VUy8ZoVpAp+kvODMWRbjdXCYRaEFALSpueQPHMbfY6ZVstiD9XgQ4eTVi1F23j
-# VLKhggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
+# BgkqhkiG9w0BCQQxIgQg5j+ac8WuJB/0nI8VugJaBuJcXqvh1OnFLOhPnNl5zJEw
+# DQYJKoZIhvcNAQEBBQAEggIAHsCBDnzAbk4/xnyzoyaGOT4Pw1v4Hb5WHe2t1Emv
+# oif7/7AuxjbZrZKASPfNkt83Ei01kvm2aT+hTiBZu6Q+T6cDKvyb/kG5dPGlqjk0
+# oKYm/cOkxK4IMbfU5qX5Cvw6adXjVnfnAE9O8V8pEA/HRti7HX/ZRLeZT/1nEE2v
+# EqTEiR2TeuVRDelPlAIk9R8o96duBtnDwVxB+0V0OU0LpplJL+9E24Q2eob0DsWV
+# knL+4MelDXMpTbeSHbbxWbzM78E8svd2FtNMEViGvg52qe70Rga35GEaAZdFIdH/
+# ynvvu9lRVMtH0jrFc9nIsw4I3wDIKWn1L5qsOmgY3V6c90tf4vBmeYzmCsKlx0tX
+# ZDekDt3X4RAWxqfbbgF6VVOnBVXo0OBwmwGSLQWkM0FA2Yex5ETeH3R6nT3tG2pT
+# vCr7kiioMZsW5Oaq4kBR6GmWRufZ0xwrDID9GCUAZRQgpqLr7R4zOEky2xhl97vJ
+# mxhGvPF+CsbR1/agZHej+3bNGOjOI6RuFBFJrPh5ufrQRLb4ObwX8Kwr6vwsz4wB
+# gX+jDHdDv9p8QLmpKRcGmPftB89y/QkwYfOn+QRvpdCS4iHSeoK0uNjiceZWcAQJ
+# Ajx3bSsr461wuSwjTcN9KZBkEUI7Sks5oN2uSpl1yM1UrKDhBA4zUM5nwMBoV9Xn
+# PNShggQEMIIEAAYJKoZIhvcNAQkGMYID8TCCA+0CAQEwazBWMQswCQYDVQQGEwJQ
 # TDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtD
 # ZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECEQCenAT2Vai0pwJtSYxseI2qMA0G
 # CWCGSAFlAwQCAgUAoIIBVzAaBgkqhkiG9w0BCQMxDQYLKoZIhvcNAQkQAQQwHAYJ
 # KoZIhvcNAQkFMQ8XDTI1MDMyMDEzMTczOVowNwYLKoZIhvcNAQkQAi8xKDAmMCQw
 # IgQgz6HcNZ3tK8PLiQ+iMOXa93tUDxpuKyPdzxdU4Yz6oNUwPwYJKoZIhvcNAQkE
-# MTIEMIjgdnVxY1kGYCpPTSgiXEkcrZNWkBKhS1+e8eD++jvIB791Fsp9u11BFr/y
-# e5kzozCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
+# MTIEMAkp0nmlzbxxehDK08y/TkBCDeZZmLMcOZXYAQCrm6V2vkRRdc0dn2olsZIV
+# 1rcFpTCBoAYLKoZIhvcNAQkQAgwxgZAwgY0wgYowgYcEFMMluJsX/MUCYGHOK3F7
 # RQfdnGpqMG8wWqRYMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0
 # YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAy
-# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIADN117Zgj
-# Uw4QeWmQmjzsIFrbS65e44fbDUzW+U+UiCvVi0SivNl38fejrwcZ1t2bhdQePiv2
-# Mku7K5bUrn8zvG9zVrIQ6q1Gs4CSsYGdLGXXChNBxXyntYRwJCM74MxduTH+sR//
-# EcawIh1wZTEYdMKJR//tU3064rVkUmRtF8eYi5BjLVMmk60/v3XtQykdHr7UdFfn
-# hV2ZAl6UGMHUcbHtEUVmg3BIhb03O9QemufY3PK+tg38+/q6pmH6JUpIhktnpEDH
-# AjSOe1fJaq1clQFiN+6aR34SpO+QGnGKG8aPqYt3w3jH0yGYfHUAU0XAaGYnaOG7
-# GnpNcol0LZZ7ZUJNkVaVTmxgU8T/zxYllqQ8TKLtMPBdqMCdTZYXtX0YOL7sj3J1
-# Td1xHfbOAHH+QR9J077AZBV5stCvOl9fJGt7LRhAsQN+NrwXLTh5ymjCtxg39BSs
-# V8GsGBOfvfUoYYewijtfHLM4NUZVW0cArW16qfrww4vo53HlyJ8bG/BVEyWrKPfy
-# MTVp/YoBNZOKYbmFdxCv54Gx2woYgg4VqObZ6uQa4KC/bONThGUZ2VEIC8EUSRWT
-# 0mNp7f7jSMW3pRWfddDBYyIG3yZzkkIa4VQTVZdMOMzxWjcHrJsxGBl42Ti3cMAR
-# 2IucKKt+czG0fWxvtZZG/OWXzPyGNZH60f8=
+# MSBDQQIRAJ6cBPZVqLSnAm1JjGx4jaowDQYJKoZIhvcNAQEBBQAEggIADxY3e351
+# k5dJZwc69gtah/gbfCnaZqkerUiq3q1vP7SwleKnuKkR+PC1RWHXJBZ/fHMTQ0YJ
+# DKkQOUSVtCHb6fPS1lCTcWxr3MET+qnilazKM9lxeU2nSuKXKCLLdYMDLGVT7RKJ
+# nNjwPPvbbyLyvZpuJuPi7xdyhBP3JH0DdwxqA8mbV0QEgD+hkFw+PDem4QZ9Nz/Y
+# 4LFGsHW1i6M05u1q4hDjJNWTL2pi5zt8XHIPsV4NzMVoNby2Jh0MmyfdFJI1ttGS
+# k/8+WNremeWWVKyLnBDHbTE5Nh0zU+/6/+WbOWGurD16W3Sb/vyn1exUGfzM8YNP
+# P/MYGvIm++O1uJ2ehoMHI3QqBZLam9i8eItPhTui8rwIBP8hnVutTrj4KYWKz+Qx
+# GftCjEY58GC0kfQDHQDXGTgqxP+FED6kOHcRId+drWahaWNV2yBGjHJsH0gCqlfY
+# NjMkweXaJWXvoxi7/2ZydF1x5B04vYKhP+czh4JVXk8n89209X0wT0lYhX1q/mbA
+# flo564dkWk0fzytUJC34GNrDRvuA0BqA8k3fZMRkgVWGK3RWwl/xooRiDydStpS5
+# 7dESRmhlrZo/Nxy19ULIGI+o4nt4c8nEWWe0gd3y8TEjpSFTTBjWSE1b52uU7azp
+# eO2f8Bz8Xs3r8QgOPK0WrO0N84eStUFmGQA=
 # SIG # End signature block
