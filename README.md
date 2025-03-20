@@ -19,5 +19,3 @@ Set of classes to build AdaptiveCard object
 	{
 		$AdaptiveCard.body += New-Fact -Facts $Facts
 	}
-
-	$Attachment = New-AdaptiveCardAsAttachment -Content $AdaptiveCard
